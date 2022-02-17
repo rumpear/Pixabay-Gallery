@@ -9,7 +9,7 @@ export default class PixabayApiService {
   async fetchImg() {
     const BASE_URL = 'https://pixabay.com/api';
     const API_KEY = '12565678-dacc4bb7fef27484506aaaffc';
-    const SEARCH_OPTIONS = 'image_type=photo&orientation=horizontal&safesearch=true';
+    const SEARCH_OPTIONS = 'image_type=photo&orientation=horizontal&safesearch=false';
 
     // console.log(this.page);
 
