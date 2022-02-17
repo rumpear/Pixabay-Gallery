@@ -6,6 +6,8 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 import imgCardsTpl from '../templates/img-cards.hbs';
 import PixabayApiService from './PixabayApi';
 
+let isDataLoading = false;
+
 const refs = {
   gallery: document.querySelector('.gallery'),
   searchForm: document.querySelector('.search-form'),
@@ -13,32 +15,39 @@ const refs = {
 };
 
 refs.searchForm.addEventListener('submit', onSearch);
-
 refs.loadMoreBtn.addEventListener('click', onLoadMoreClick);
-refs.loadMoreBtn.hidden = true;
 
-let gallery = new SimpleLightbox('.gallery a');
+hideSpinner();
+
+let gallery = new SimpleLightbox('.gallery a', { captionsData: 'alt', captionDelay: 250 });
 const pixabayApi = new PixabayApiService();
-
-const scrollThrottled = throttle(infiniteScroll, 600);
 
 async function onSearch(e) {
   e.preventDefault();
   cleanupRender();
+  showSpinner();
+  // console.log(isDataLoading);
 
   pixabayApi.query = e.currentTarget.elements.searchQuery.value.trim();
   pixabayApi.resetPage();
 
   if (!pixabayApi.query) {
-    cleanupRender();
-    refs.loadMoreBtn.hidden = true;
-    // refs.searchForm.elements.search.disabled = true;
+    Notiflix.Notify.warning('Enter your search term');
+    // cleanupRender();
+    hideSpinner();
     return;
   }
 
+  if (isDataLoading) return;
+  isDataLoading = true;
+
+  // console.log(isDataLoading);
+
   try {
     const { totalHits, hits } = await pixabayApi.fetchImg();
-    // console.log(totalHits, hits);
+
+    // disableSearchBtn();
+    refs.searchForm.reset();
 
     if (hits.length === 0) {
       Notiflix.Notify.failure(
@@ -46,69 +55,119 @@ async function onSearch(e) {
       );
       return;
     }
+
     Notiflix.Notify.success(`Hooray! We found ${totalHits} images`);
     renderImg(hits);
   } catch (error) {
     console.log(error);
-  }
+  } finally {
+    // enableSearchBtn();
 
-  window.addEventListener('scroll', scrollThrottled);
+    hideSpinner();
+    isDataLoading = false;
+  }
+  addInfiniteScroll();
+  // console.log(isDataLoading);
 }
 
 async function onLoadMoreClick() {
   try {
     const data = await pixabayApi.fetchImg();
-    console.log(data);
+
+    showSpinner();
+
+    if (isDataLoading) return;
+    isDataLoading = true;
+
     if (!data || data.hits.length === 0) {
-      window.removeEventListener('scroll', scrollThrottled);
+      removeInfiniteScroll();
       Notiflix.Notify.info("We're sorry, but you've reached the end of search results");
+      hideSpinner();
+      return;
     }
+
     renderImg(data.hits);
   } catch (error) {
     console.log(error);
+    hideSpinner();
+  } finally {
+    isDataLoading = false;
   }
-
-  // * fetchThen
-  // pixabayApi
-  //   .fetchImg()
-  //   .then(({ hits }) => {
-  //     // console.log(hits.length);
-  //     renderImg(hits);
-
-  //     if (hits.length < 40) {
-  //       Notiflix.Notify.info("We're sorry, but you've reached the end of search results");
-  //       // refs.loadMoreBtn.hidden = true;
-  //       window.removeEventListener('scroll', scrollThrottled);
-  //     }
-  //   })
-  //   .catch(() => {
-  //     Notiflix.Notify.info("We're sorry, but you've reached the end of search results");
-  //     window.removeEventListener('scroll', scrollThrottled);
-  //     return;
-  //   });
 }
 
+// render
 function renderImg(hits) {
   const markup = hits.map(imgCardsTpl).join('');
   refs.gallery.insertAdjacentHTML('beforeend', markup);
   gallery.refresh();
-  // console.log(markup);
-  // smoothFn();
 }
 
 function cleanupRender() {
   refs.gallery.innerHTML = '';
 }
 
+// buttons
+function disableSearchBtn() {
+  refs.searchForm.elements.search.disabled = true;
+}
+
+function enableSearchBtn() {
+  refs.searchForm.elements.search.disabled = false;
+}
+
+// scroll
 function infiniteScroll() {
   const documentRect = document.documentElement.getBoundingClientRect();
 
-  console.log('top', documentRect.top);
-  console.log('bottom', documentRect.bottom);
-  console.log('clientHeight', document.documentElement.clientHeight);
+  // console.log('top', documentRect.top);
+  // console.log('bottom', documentRect.bottom);
+  // console.log('clientHeight', document.documentElement.clientHeight);
   if (documentRect.bottom < document.documentElement.clientHeight + 500) {
     onLoadMoreClick();
   }
+}
+
+enableIntersectionObserver();
+function enableIntersectionObserver() {
+  const options = {
+    root: document.querySelector('.container'),
+    threshold: 1,
+  };
+
+  const handleObserver = ([item]) => {
+    item.isIntersecting;
+    if (item.isIntersecting) {
+      console.log(item.isIntersecting);
+      onLoadMoreClick();
+      console.log(1);
+    }
+  };
+
+  const observer = new IntersectionObserver(handleObserver, options);
+  observer.observe(refs.loadMoreBtn);
+}
+
+const scrollThrottled = throttle(infiniteScroll, 700);
+
+function addInfiniteScroll() {
+  window.addEventListener('scroll', scrollThrottled);
+}
+
+function removeInfiniteScroll() {
+  window.removeEventListener('scroll', scrollThrottled);
+}
+
+// spinner
+function hideSpinner() {
+  // refs.loadMoreBtn.classList.add('is-hidden');
+  // refs.loadMoreBtn.hidden = true;
+  refs.loadMoreBtn.style.display = 'none';
+}
+
+function showSpinner() {
+  // refs.loadMoreBtn.classList.remove('is-hidden');
+  // refs.loadMoreBtn.hidden = false;
+  refs.loadMoreBtn.style.display = 'block';
 }
 
 // * smooth
