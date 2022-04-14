@@ -127,25 +127,25 @@ function infiniteScroll() {
   }
 }
 
-enableIntersectionObserver();
-function enableIntersectionObserver() {
-  const options = {
-    root: document.querySelector('.container'),
-    threshold: 1,
-  };
+// enableIntersectionObserver();
+// function enableIntersectionObserver() {
+//   const options = {
+//     root: document.querySelector('.container'),
+//     threshold: 1,
+//   };
 
-  const handleObserver = ([item]) => {
-    item.isIntersecting;
-    if (item.isIntersecting) {
-      console.log(item.isIntersecting);
-      onLoadMoreClick();
-      console.log(1);
-    }
-  };
+//   const handleObserver = ([item]) => {
+//     item.isIntersecting;
+//     if (item.isIntersecting) {
+//       console.log(item.isIntersecting);
+//       onLoadMoreClick();
+//       console.log(1);
+//     }
+//   };
 
-  const observer = new IntersectionObserver(handleObserver, options);
-  observer.observe(refs.loadMoreBtn);
-}
+//   const observer = new IntersectionObserver(handleObserver, options);
+//   observer.observe(refs.loadMoreBtn);
+// }
 
 const scrollThrottled = throttle(infiniteScroll, 700);
 
